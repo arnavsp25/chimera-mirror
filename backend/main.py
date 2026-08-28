@@ -7,6 +7,7 @@ from backend.config import settings
 from backend.routers.ws import router as ws_router
 from backend.routers.ingest import router as ingest_router, edge_filter
 from backend.deception.decoy_routes import decoy_router
+from backend.routers.chat import router as chat_router
 
 
 @asynccontextmanager
@@ -37,6 +38,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"[CHIMERA] WARNING: PostgreSQL not reachable - {e}")
         print("[CHIMERA] Server will start, but DB operations will fail until Postgres is available")
+
+    # Ensure graph_nodes / graph_edges tables exist (Feature 16)
+    try:
+        from backend.db.graph import create_graph_tables
+        await create_graph_tables()
+        print("[CHIMERA] Graph tables verified [OK]")
+    except Exception as e:
+        print(f"[CHIMERA] WARNING: could not create graph tables - {e}")
 
     print("[CHIMERA] All systems initialized - server ready")
 
@@ -76,6 +85,7 @@ app.add_middleware(
 app.include_router(ingest_router, tags=["Ingest"])
 app.include_router(ws_router, tags=["WebSocket"])
 app.include_router(decoy_router, tags=["Deception"])
+app.include_router(chat_router, tags=["Chat"])
 
 
 # ── Health Check ──────────────────────────────────────────────────────────
